@@ -1,78 +1,80 @@
-#include "start.h"
+#include "wrap.h"
+#include "startup.h"
 #include <stdlib.h>
-
-
-/*// polling
-	volatile uint32_t i = 0;
-	
-	while(1)
-	{
-		// a little delay
-
-		// check if button pressed and if turn led on else off
-		// attention: no debouncing.
-		if (REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << BLUE_BUTTON))
-		{
-			REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1 << BLUE_LED);
-		}
-		else
-		{
-			REG(GPIO_BASE + GPIO_OUTPUT_VAL) |= (1 << BLUE_LED);
-		}
-	}
-}*/
 
 typedef unsigned int uint32_t;
 
 #define REG(P) (*(volatile uint32_t *) (P))
 
+static volatile uint32_t i = 0;
 
-const uint32_t GPIO_BASE = 0x10012000;
-const uint32_t GPIO_PUE = 0x10;
-const uint32_t GPIO_INPUT_EN = 0x4;
-const uint32_t GPIO_INPUT_VAL = 0x0;
-
-const uint32_t GPIO_OUTPUT_EN = 0x8;
-const uint32_t GPIO_OUTPUT_VAL = 0xc;
-const uint32_t GPIO_IOF_EN = 0x38;
-
-const uint32_t GREEN_LED = 18;
-const uint32_t BLUE_LED = 21;
-const uint32_t YELLOW_LED = 0;
-const uint32_t RED_LED = 3;
-
-const uint32_t GREEN_BUTTON = 19;
-const uint32_t BLUE_BUTTON = 20;
-const uint32_t YELLOW_BUTTON = 1;
-const uint32_t RED_BUTTON = 2;
-
-const uint32_t BUTTON = 18;
-
-const uint32_t T_SHORT = 300000;
-const uint32_t T_LONG = 2*T_SHORT;
-const uint32_t T_VERY_LONG = 2 * T_LONG;
+void on(uint32_t num);
+void off(uint32_t num);
+static void setup(void);
+static uint32_t button(void);
+static uint32_t bereitschaftsmodus(void);
+void wait(uint32_t num);
+static void vorfuehrphase( void );
+static void randomeLedOn(uint32_t num);
+static void nachahmphase(void);
+static void verloren(void);
+void game(void);
+static void midGame(void);
+static void endmodus(void);
+static void zwischensequenz(void);
 
 
+extern uint32_t GPIO_BASE;
+uint32_t GPIO_BASE = 0x10012000u;
+extern uint32_t GPIO_PUE;
+uint32_t GPIO_PUE = 0x10u;
+extern uint32_t GPIO_INPUT_EN;
+uint32_t GPIO_INPUT_EN = 0x4u;
+extern uint32_t GPIO_INPUT_VAL;
+uint32_t GPIO_INPUT_VAL = 0x0;
+extern uint32_t GPIO_OUTPUT_EN; 
+uint32_t GPIO_OUTPUT_EN = 0x8u;
+extern uint32_t GPIO_OUTPUT_VAL;
+uint32_t GPIO_OUTPUT_VAL = 0xcu;
+extern uint32_t GPIO_IOF_EN;
+uint32_t GPIO_IOF_EN = 0x38u;
 
-int n = 3;
-int count = 0;
+static const uint32_t GREEN_LED = 18u;
+static const uint32_t BLUE_LED = 21u;
+static const uint32_t YELLOW_LED = 0u;
+static const uint32_t RED_LED = 3u;
+static const uint32_t GREEN_BUTTON = 19u;
+static const uint32_t BLUE_BUTTON = 20u;
+static const uint32_t YELLOW_BUTTON = 1u;
+static const uint32_t RED_BUTTON = 2u;
+static const uint32_t T_SHORT = 300000u;
+static const uint32_t T_LONG = 2u*T_SHORT;
+extern uint32_t T_VERY_LONG;
+uint32_t T_VERY_LONG = 4u* T_SHORT;
 
-int main (void){
+
+static uint32_t List[13];
+
+extern uint32_t n;
+uint32_t n=3;
+
+int main ( void ){
 	setup();
 	game();
+	return 0;
 }
 
-void game(){
+void game( void ){
 	while (1)
 		{
-			if (bereitschaftsmodus() == 1)
+			if (bereitschaftsmodus() == 1u)
 			{	
 				midGame();
 			}
 		}
 	}
 
-void midGame(){
+void midGame( void ){
 	wait(T_SHORT);
 	vorfuehrphase();
 	wait(T_SHORT);
@@ -80,119 +82,119 @@ void midGame(){
 }
 
 
-void setup(){
+void setup( void ){
 	// setup Green LED as output
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << GREEN_LED);
-	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1 << GREEN_LED);
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1 << GREEN_LED;
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << GREEN_LED);
+	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1u << GREEN_LED);
+	//REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1u << GREEN_LED;
 
 	// setup Green BUTTON as input
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << GREEN_BUTTON);
-	REG(GPIO_BASE + GPIO_PUE) |= 1 << GREEN_BUTTON;
-	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1 << GREEN_BUTTON;
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1 << GREEN_BUTTON);
-	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1 << GREEN_BUTTON);
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << GREEN_BUTTON);
+	REG(GPIO_BASE + GPIO_PUE) |= 1u << GREEN_BUTTON;
+	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1u << GREEN_BUTTON;
+	//REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1u << GREEN_BUTTON);
+	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1u << GREEN_BUTTON);
 
 
 
 	// setup Blue LED as output
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << BLUE_LED);
-	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1 << BLUE_LED);
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1 << BLUE_LED;
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << BLUE_LED);
+	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1u << BLUE_LED);
+	//REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1u << BLUE_LED;
 
 
 	// setup Blue BUTTON as input
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << BLUE_BUTTON);
-	REG(GPIO_BASE + GPIO_PUE) |= 1 << BLUE_BUTTON;
-	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1 << BLUE_BUTTON;
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1 << BLUE_BUTTON);
-	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1 << BLUE_BUTTON);
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << BLUE_BUTTON);
+	REG(GPIO_BASE + GPIO_PUE) |= 1u << BLUE_BUTTON;
+	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1u << BLUE_BUTTON;
+	//REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1u << BLUE_BUTTON);
+	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1u << BLUE_BUTTON);
 
 
 
 	// setup Yellow LED as output
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << YELLOW_LED);
-	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1 << YELLOW_LED);
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1 << YELLOW_LED;
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << YELLOW_LED);
+	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1u << YELLOW_LED);
+	REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1u << YELLOW_LED;
 
 	// setup Yellow BUTTON as input
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << YELLOW_BUTTON);
-	REG(GPIO_BASE + GPIO_PUE) |= 1 << YELLOW_BUTTON;
-	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1 << YELLOW_BUTTON;
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1 << YELLOW_BUTTON);
-	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1 << YELLOW_BUTTON);
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << YELLOW_BUTTON);
+	REG(GPIO_BASE + GPIO_PUE) |= 1u << YELLOW_BUTTON;
+	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1u << YELLOW_BUTTON;
+	REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1u << YELLOW_BUTTON);
+	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1u << YELLOW_BUTTON);
 
 
 
 	// setup Red LED as output
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << RED_LED);
-	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1 << RED_LED);
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1 << RED_LED;
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << RED_LED);
+	REG(GPIO_BASE + GPIO_INPUT_EN) &= ~(1u << RED_LED);
+	REG(GPIO_BASE + GPIO_OUTPUT_EN) |= 1u << RED_LED;
 
 	// setup Red BUTTON as input
-	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1 << RED_BUTTON);
-	REG(GPIO_BASE + GPIO_PUE) |= 1 << RED_BUTTON;
-	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1 << RED_BUTTON;
-	REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1 << RED_BUTTON);
-	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1 << RED_BUTTON);
+	REG(GPIO_BASE + GPIO_IOF_EN) &= ~(1u << RED_BUTTON);
+	REG(GPIO_BASE + GPIO_PUE) |= 1u << RED_BUTTON;
+	REG(GPIO_BASE + GPIO_INPUT_EN) |= 1u << RED_BUTTON;
+	REG(GPIO_BASE + GPIO_OUTPUT_EN) &= ~(1u<< RED_BUTTON);
+	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1u << RED_BUTTON);
 }
-void on(int x){
-	if (x == 0){
+
+void on(uint32_t x){
+	if (x == 0u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) |= (1u << GREEN_LED); 
 	}
-	else if (x == 1){
+	else if (x == 1u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) |= (1u << BLUE_LED); 
 	}
-	else if (x == 2){
+	else if (x == 2u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) |= (1u << YELLOW_LED); 
 	}
-	else if (x == 3){
+	else if (x == 3u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) |= (1u << RED_LED); 
-	}
+	} else {}
 }
-void off(int x){
+void off(uint32_t x){
 
-	if (x == 0){
+	if (x == 0u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) &= ~(1u << GREEN_LED); 
 	}
-	else if (x == 1){
+	else if (x == 1u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) &= ~(1u << BLUE_LED); 
 	}
-	else if (x == 2){
+	else if (x == 2u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) &= ~(1u << YELLOW_LED); 
 	}
-	else if (x == 3){
+	else if (x == 3u){
 		REG(GPIO_BASE+GPIO_OUTPUT_VAL) &= ~(1u << RED_LED); 
-	}
+	} else {}
 }
 void wait(uint32_t time){
-for (int i = 0; i < time; i++){
 
+for (i = 0; i < time; i++){
 	}
+};
+uint32_t button( void ){
+
+	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << GREEN_BUTTON))){
+		
+		return 0u;
+	}
+	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << BLUE_BUTTON))){
+		
+		return 1u;
+	}
+	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << YELLOW_BUTTON))){
+		
+		return 2u;
+	}
+	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << RED_BUTTON))){
+		
+		return 3u;
+	} 
+	return -1u;
 }
-int button(){
 
-	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << GREEN_BUTTON))){
-		printf("GREEN\n\n");
-		return 0;
-	}
-	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << BLUE_BUTTON))){
-		printf("BLUE\n\n");
-		return 1;
-	}
-	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << YELLOW_BUTTON))){
-		printf("YELLOW\n\n");
-		return 2;
-	}
-	if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << RED_BUTTON))){
-		printf("RED\n\n");
-		return 3;
-	}
-
-
-}
-
-int bereitschaftsmodus(){
+uint32_t bereitschaftsmodus( void ){
 	
 	while (1)
 	{
@@ -200,24 +202,24 @@ int bereitschaftsmodus(){
         wait(T_SHORT);
         off(0);
 
-		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << GREEN_BUTTON))){
-			return 1;
+		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << GREEN_BUTTON))){
+			return 1u;
 		}
 
         on(1); // Blaue Lampe umschalten
         wait(T_SHORT);
         off(1);
 
-		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << GREEN_BUTTON))){
-			return 1;
+		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << GREEN_BUTTON))){
+			return 1u;
 		}
 
         on(2);// Gelbe Lampe umschalten
         wait(T_SHORT);
         off(2);
 
-		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << GREEN_BUTTON))){
-			return 1;
+		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << GREEN_BUTTON))){
+			return 1u;
 		}
 
         on(3); // Rote Lampe umschalten
@@ -225,8 +227,8 @@ int bereitschaftsmodus(){
         off(3);
 
 
-		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1 << GREEN_BUTTON))){
-			return 1;
+		if (!(REG(GPIO_BASE + GPIO_INPUT_VAL) & (1u << GREEN_BUTTON))){
+			return 1u;
 		}
 
 			
@@ -238,24 +240,18 @@ int bereitschaftsmodus(){
 }
 
 
-void vorfuehrphase(){
-	
-	printf("vorfuehrphase\n\n");
+void vorfuehrphase( void ){
 
-	on(1);
-	on(2);
+	on(1u);
+	on(2u);
 	wait(T_SHORT);
-	off(1);
-	off(2);
+	off(1u);
+	off(2u);
 
 	wait(T_SHORT);
-	
-	volatile int count = 0;
+	volatile uint32_t count = 0u;
 	while (count < n)
 	{
-		printf("int n = %d\n\n", n);
-		printf("int count = %d\n\n", count);	
-		
 		randomeLedOn(count);
 		count++;
 	}
@@ -272,45 +268,39 @@ void vorfuehrphase(){
 	off(0);
 	off(1);
 	off(2);
-	off(3);	
-
-	printf("ENDE vorfuehrphase\n\n"); 
-	
+	off(3);		
 
 }
 
 
-void randomeLedOn(int count){
+void randomeLedOn( uint32_t counter ){
 
-	int randome_number = rand() % 4;
+	uint32_t randome_number = rand() % 4;
 
-	if(randome_number == 0){
-		printf("GREEN LED ON\n\n");
-		on(0);
+	if(randome_number == 0u){
+		on(0u);
 		wait(T_SHORT);
-		off(0);
+		off(0u);
 			}
-	else if (randome_number == 1){
-		printf("BLUE LED ON\n\n");
-		on(1);
+	else if (randome_number == 1u){
+		on(1u);
 		wait(T_SHORT);
-		off(1);
+		off(1u);
 			}
-	else if (randome_number == 2){
-		printf("YELLOW ON\n\n");
-		on(2);
+	else if (randome_number == 2u){
+		on(2u);
 		wait(T_SHORT);
-		off(2);
+		off(2u);
 	}
 			
-	else if (randome_number == 3){
-		printf("RED ON\n\n");
-		on(3);
+	//actualy not always true
+	else{
+		on(3u);
 		wait(T_SHORT);
-		off(3);
+		off(3u);
 	}
 
-	List[count] = randome_number;
+	List[counter] = randome_number;
 
 	wait(T_SHORT);
 	
@@ -318,23 +308,21 @@ void randomeLedOn(int count){
 }
 
 
-void nachahmphase(){
-
-	printf("Nachahmphase\n\n");
-	for(int j=0; j < n; j ++){	
+void nachahmphase( void ){
+	for(i=0; i < n; i ++){	
 		wait(T_LONG);
-		printf("DU BRAUCHST %d\n\n",List[j]);
-		int ans = NULL;
+	
+		uint32_t ans = 0u;
 		ans = button();
-		printf("DIE ANTWORT %d\n\n",ans);
-		if(ans != List[j]){
-			printf("Verloren\n\n");
+
+		if(ans != List[i]){
+
 			verloren();
 		} else {
-			printf("Richtig\n\n");
-			on(List[j]);
+
+			on(List[i]);
 			wait(T_SHORT);
-			off(List[j]);
+			off(List[i]);
 		}
 	}
 
@@ -343,8 +331,9 @@ void nachahmphase(){
 
 }
 
-void verloren(){
+void verloren( void ){
 
+	n=3;
 	on(0);
 	on(3);
 	wait(T_SHORT);
@@ -360,22 +349,22 @@ void verloren(){
 
 
 	//Green = 1, Blue = 2, Yellow = 4, Red = 8;
-	int result = n - 3;
+	//Needed to light up the binary code
+	uint32_t result = n - 3u;
 
-	if (result >= 8){
-		result -= 8;
+	if (result >= 8u){
+		result -= 8u;
 		on(0);
 	}
-	if (result >= 4){
-		result -= 4;
+	if (result >= 4u){
+		result -= 4u;
 		on(1);
 	}
-	if (result >= 2){
-		result -= 2;
+	if (result >= 2u){
+		result -= 2u;
 		on(2);
 	}
-	if (result >= 1){
-		result -= 1;
+	if (result >= 1u){
 		on(3);
 	}
 
@@ -387,11 +376,9 @@ void verloren(){
 	off(1);
 
 	game();
-
-
 }
 
-void zwischensequenz(){
+void zwischensequenz( void ){
 	on(0);
 	on(2);
 	wait(T_SHORT);
@@ -414,8 +401,9 @@ void zwischensequenz(){
 	off(3);
 
 
-	if(n==13){
-		main();
+	if(n==13u){
+		endmodus();
+		
 	} else {
 		n ++;
 		midGame();
@@ -425,42 +413,44 @@ void zwischensequenz(){
 
 }
 
-void endmodus(){
-	on(0);
-	on(1);
-	on(2);
-	on(3);
+void endmodus( void ){
+	on(0u);
+	on(1u);
+	on(2u);
+	on(3u);
 	wait(T_SHORT);
-	off(0);
-	off(1);
-	off(2);
-	off(3);
+	off(0u);
+	off(1u);
+	off(2u);
+	off(3u);
 	wait(T_SHORT);
 
-	on(0);
-	on(1);
-	on(2);
-	on(3);
+	on(0u);
+	on(1u);
+	on(2u);
+	on(3u);
 	wait(T_SHORT);
-	off(0);
-	off(1);
-	off(2);
-	off(3);
+	off(0u);
+	off(1u);
+	off(2u);
+	off(3u);
 	wait(T_LONG);
 
-	on(0);
-	on(1);
-	on(2);
-	on(3);
+	on(0u);
+	on(1u);
+	on(2u);
+	on(3u);
 	wait(T_SHORT);
-	off(0);
-	off(1);
-	off(2);
-	off(3);
+	off(0u);
+	off(1u);
+	off(2u);
+	off(3u);
 	wait(T_SHORT);
 
-	on(0);
-	on(1);
-	on(2);
-	on(3);
+	on(0u);
+	on(1u);
+	on(2u);
+	on(3u);
+
+	midGame();
 }
